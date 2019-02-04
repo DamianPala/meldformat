@@ -6,6 +6,7 @@ import os
 import shutil
 import logging
 import tempfile
+import filecmp
 import autopep8
 import subprocess
 from types import SimpleNamespace
@@ -36,6 +37,10 @@ class NotADirectoryError(MeldFormatError):
 
 
 class FileNotFoundError(MeldFormatError):
+    pass
+
+
+class PathNotFoundError(MeldFormatError):
     pass
 
 
@@ -76,7 +81,7 @@ class Autopep8Formatter():
     
     def lint_file(self, file_to_lint_path, setup_path):
         _logger.info(f'Lint {file_to_lint_path} file and show report.')
-        _logger.info('========================================')
+        _logger.info(f'=============== {file_to_lint_path.name} ===============')
 
         if not shutil.which(self.linter.cmd):
             raise MeldError(f'{self.linter.name} not found. Please install it and add to PATH', _logger)
@@ -139,19 +144,23 @@ def format_file(formatter, path, setup_path=None, with_meld=True, logger=None):
     setup_path = _check_setup_file(setup_path)
     
     formatted_file_path = formatter.format_file(path, setup_path)
-    
-    if _is_line_endings_differences_or_no_changes(path, formatted_file_path):
-        _logger.info(f'No changes in {path}.')
-        final_formatted_file_path = None
-    else:
-        if with_meld:
+
+    if with_meld:
+        if _is_line_endings_differences_or_no_changes(path, formatted_file_path):
+            _logger.info(f'No changes in {path}.')
+            final_formatted_file_path = None    
+        else:
             _check_meld()
             _merge_changes(path, formatted_file_path)
+            final_formatted_file_path = path
+    else:
+        if filecmp.cmp(path, formatted_file_path):
+            _logger.info(f'No changes in {path}.')
+            final_formatted_file_path = None    
         else:
             path.unlink()
             shutil.copy(formatted_file_path, path)
-        
-        final_formatted_file_path = path
+            final_formatted_file_path = path
     
     if hasattr(formatter, 'lint_file'):
         linter_output = formatter.lint_file(path, setup_path)
@@ -163,6 +172,7 @@ def format_file(formatter, path, setup_path=None, with_meld=True, logger=None):
 
 def format_dir(formatter, path, setup_path=None, with_meld=True, logger=None):
     if logger:
+        global _logger
         _logger = logger
     formatter = _get_formatter(formatter)
     _print_greeting(formatter, path, PathType.DIRECTORY, with_meld)
@@ -184,7 +194,7 @@ def format_dir(formatter, path, setup_path=None, with_meld=True, logger=None):
                 final_formatted_files.append(original_file_path)
     else:
         for original_file_path, formatted_file_path in zip(files_to_format, formatted_files):
-            if _is_line_endings_differences_or_no_changes(original_file_path, formatted_file_path):
+            if filecmp.cmp(original_file_path, formatted_file_path):
                 _logger.info(f'No changes in {original_file_path}.')
             else:
                 original_file_path.unlink()
@@ -197,7 +207,7 @@ def format_dir(formatter, path, setup_path=None, with_meld=True, logger=None):
             if linter_output:
                 print(linter_output)
     
-    return final_formatted_files
+    return final_formatted_files if final_formatted_files.__len__() > 0 else None
 
 
 def _get_formatter(formatter):
@@ -218,7 +228,7 @@ def _print_greeting(formatter, path, path_type, with_meld):
 def _check_path(path, path_type):
     path = _get_path(path)
     if not path.exists():
-        raise FileNotFoundError(f'{path_type.value.title()} to format not exists!', _logger)
+        raise PathNotFoundError(f'{path_type.value.title()} to format not exists!', _logger)
     
     incorrect_path_msg = f'{path_type.value.title()} to format path must point to a {path_type.value}!'
     if path_type == PathType.FILE:

@@ -14,7 +14,7 @@ from pathlib import Path
 import meldformat
 
 
-RUN_ALL_TESTS = True
+RUN_ALL_TESTS = False
 
 
 def _error_remove_readonly(_action, name, _exc):
@@ -98,18 +98,13 @@ if __name__ == '__main__':
 
 @pytest.mark.skipif(RUN_ALL_TESTS == False, reason='Skipped on demand')
 def test_format_file_SHOULD_do_nothing_WHEN_no_changes(cwd, caplog):
-    not_formatted_file_content = """
-if __name__ == '__main__':
-    main()
-"""
+    not_formatted_file_content = "\nif __name__ == '__main__':\n    main()\n"
 
-    formatted_file_content = """
-if __name__ == '__main__':
-    main()
-"""
+    formatted_file_content = "\nif __name__ == '__main__':\n    main()\n"
     
     test_file_path = cwd / 'module.py'
-    test_file_path.write_text(not_formatted_file_content)
+    with open(test_file_path, 'w', newline='\n')as file:
+        file.write(not_formatted_file_content)
     
     meldformat._logger.setLevel(logging.INFO)
     formatted_file_path = meldformat.format_file(meldformat.Formatter.AUTOPEP8, test_file_path, with_meld=False)
@@ -405,6 +400,7 @@ if __name__ == '__main__':
     test_file3_path = cwd / 'dir' / 'module3.py'
     test_file3_path.write_text(not_formatted_file2_content)
     
+    meldformat._logger.setLevel(logging.INFO)
     formatted_files_paths = {path.relative_to(cwd).as_posix() 
                              for path in meldformat.format_dir(meldformat.Formatter.AUTOPEP8, cwd, with_meld=False)}
     
@@ -414,6 +410,40 @@ if __name__ == '__main__':
     assert formatted_files_paths == expected_formatted_files_paths
 
 
-# TODO: add more tests for dir
+@pytest.mark.skipif(RUN_ALL_TESTS == False, reason='Skipped on demand')
+def test_format_dir_SHOULD_raise_error_WHEN_path_not_exists(cwd):
+    with pytest.raises(meldformat.PathNotFoundError):
+        meldformat.format_dir(meldformat.Formatter.AUTOPEP8, cwd / 'dir', with_meld=False)
 
+
+@pytest.mark.skipif(RUN_ALL_TESTS == False, reason='Skipped on demand')
+def test_format_dir_SHOULD_raise_error_WHEN_path_not_a_directory(cwd):
+    (cwd / 'file.txt').touch()
     
+    with pytest.raises(meldformat.NotADirectoryError):
+        meldformat.format_dir(meldformat.Formatter.AUTOPEP8, cwd / 'file.txt', with_meld=False)
+
+
+@pytest.mark.skipif(RUN_ALL_TESTS == False, reason='Skipped on demand')
+def test_format_dir_SHOULD_return_empty_WHEN_no_files_to_format(cwd):
+    (cwd / 'file.txt').touch()
+    
+    assert meldformat.format_dir(meldformat.Formatter.AUTOPEP8, cwd, with_meld=False) is None
+
+
+@pytest.mark.skipif(RUN_ALL_TESTS == False, reason='Skipped on demand')
+def test_format_dir_SHOULD_print_no_changes_WHEN_no_changes(cwd, caplog):
+    not_formatted_file_content = "\nif __name__ == '__main__':\n    main()\n"
+
+    formatted_file_content = "\nif __name__ == '__main__':\n    main()\n"
+    
+    test_file_path = cwd / 'module.py'
+    with open(test_file_path, 'w', newline='\n')as file:
+        file.write(not_formatted_file_content)
+    
+    meldformat._logger.setLevel(logging.INFO)
+    formatted_files_paths = meldformat.format_dir(meldformat.Formatter.AUTOPEP8, cwd, with_meld=False)
+    
+    assert test_file_path.read_text() == formatted_file_content
+    assert formatted_files_paths is None
+    assert 'No changes in' in caplog.text
