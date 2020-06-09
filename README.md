@@ -20,6 +20,7 @@ Meldformat is intended to use only as a python module.
 
 
 5. Merge changes manually
+
 6. Save final file manually
 
 
@@ -37,7 +38,7 @@ Meldformat is intended to use only as a python module.
 - Format a specified file
 - Format an entire directory
 - Provide a setup file with a configuration for the formatter
-- When using Meld is chosen and the formatted file has changes only in line endings then it is treated as no changes and merging process will not be started
+- When using Meld is chosen and the formatted file has changes only in line endings comparing to the original file then it is treated as no changes and merging process will not be started
 - When using Python Formatter additional linting is performed after formatting
 
 ## Usage
@@ -48,7 +49,7 @@ To format an **entire directory** use `format_dir` function.
 
 You can specify a formatter setup file via `setup_path` parameter.
 
-By default logger from `logging` module is used but you can specify your own logger via `logger` parameter.
+By default logger from `logging` module is used but you can specify your own logger via `get_logger` function parameter.
 
 Formatting without Meld is available via `with_meld` parameter.
 

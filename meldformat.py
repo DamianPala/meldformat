@@ -133,10 +133,10 @@ class PathType(Enum):
     DIRECTORY = 'directory'
 
 
-def format_file(formatter, path, setup_path=None, with_meld=True, logger=None):
-    if logger:
+def format_file(formatter, path, setup_path=None, with_meld=True, get_logger=None):
+    if get_logger:
         global _logger
-        _logger = logger
+        _logger = get_logger(__name__)
     formatter = _get_formatter(formatter)
     _print_greeting(formatter, path, PathType.FILE, with_meld)
     
@@ -170,10 +170,10 @@ def format_file(formatter, path, setup_path=None, with_meld=True, logger=None):
     return final_formatted_file_path
 
 
-def format_dir(formatter, path, setup_path=None, with_meld=True, logger=None):
-    if logger:
+def format_dir(formatter, path, setup_path=None, with_meld=True, get_logger=None):
+    if get_logger:
         global _logger
-        _logger = logger
+        _logger = get_logger(__name__)
     formatter = _get_formatter(formatter)
     _print_greeting(formatter, path, PathType.DIRECTORY, with_meld)
 

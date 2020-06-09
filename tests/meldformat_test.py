@@ -14,7 +14,7 @@ from pathlib import Path
 import meldformat
 
 
-RUN_ALL_TESTS = False
+RUN_ALL_TESTS = True
 
 
 def _error_remove_readonly(_action, name, _exc):
@@ -47,7 +47,7 @@ def test_format_file_SHOULD_raise_error_when_is_not_a_file(cwd):
 
 @pytest.mark.skipif(RUN_ALL_TESTS == False, reason='Skipped on demand')
 def test_format_file_SHOULD_raise_error_when_file_not_exists(cwd):
-    with pytest.raises(meldformat.FileNotFoundError) as exc:
+    with pytest.raises(meldformat.PathNotFoundError) as exc:
         meldformat.format_file(meldformat.Formatter.AUTOPEP8, cwd / 'file.txt')
 
     assert 'File to format' in str(exc.value)
